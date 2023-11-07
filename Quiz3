@@ -1,0 +1,42 @@
+from flask import Flask, request, jsonify
+import numpy as np
+from tensorflow import keras
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.inception_v3 import preprocess_input
+import requests
+from PIL import Image
+
+app = Flask(__name)
+
+# Load the digit recognition model (you should replace this with your own model)
+model = keras.models.load_model('your_digit_recognition_model.h5')
+
+def preprocess_image(image_path):
+    img = Image.open(image_path)
+    img = img.resize((28, 28))
+    img = img.convert('L')  # Convert to grayscale
+    img_array = np.array(img) / 255.0  # Normalize pixel values
+    img_array = img_array.reshape((1, 28, 28, 1))  # Reshape for model input
+    return img_array
+
+@app.route('/compare_images', methods=['POST'])
+def compare_images():
+    # Get the two uploaded images
+    image1 = request.files['image1']
+    image2 = request.files['image2']
+
+    # Preprocess the images for digit recognition
+    img_array1 = preprocess_image(image1)
+    img_array2 = preprocess_image(image2)
+
+    # Predict the digits from both images
+    digit1 = model.predict_classes(img_array1)[0]
+    digit2 = model.predict_classes(img_array2)[0]
+
+    # Compare the predicted digits and return the result
+    result = digit1 == digit2
+
+    return jsonify({"result": result})
+
+if __name__ == '__main__':
+    app.run(debug=True)
